@@ -23,3 +23,9 @@ Even for an MVP, manual database schema changes are error-prone. Alembic provide
 
 ## 7. Global Error Handling
 A global exception handler ensures that we never leak internal stack traces to the mobile client, returning a clean JSON error response instead.
+
+## 8. Authentication System
+- **JWT Based**: Secure stateless authentication using Access and Refresh tokens.
+- **Bcrypt Hashing**: Passwords are never stored in plain text.
+- **Unified Auth Service**: Centralized logic for login, signup, and token refreshing.
+- **Secure Dependencies**: `get_current_user` dependency ensures that protected routes are only accessible with a valid JWT.

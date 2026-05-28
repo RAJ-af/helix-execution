@@ -6,6 +6,8 @@ import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.navArgument
+import com.helix.app.features.auth.ui.LoginScreen
+import com.helix.app.features.auth.ui.SignupScreen
 import com.helix.app.features.chat.ui.ChatScreen
 import com.helix.app.features.home.ui.HomeScreen
 import com.helix.app.features.search.ui.SearchScreen
@@ -20,18 +22,42 @@ fun NavGraph(navController: NavHostController) {
         startDestination = Screen.Splash.route
     ) {
         composable(Screen.Splash.route) {
-            SplashScreen(onNavigateToWelcome = {
-                navController.navigate(Screen.Welcome.route) {
-                    popUpTo(Screen.Splash.route) { inclusive = true }
+            SplashScreen(
+                onNavigateToWelcome = {
+                    navController.navigate(Screen.Welcome.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
+                },
+                onNavigateToHome = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Splash.route) { inclusive = true }
+                    }
                 }
-            })
+            )
         }
         composable(Screen.Welcome.route) {
-            WelcomeScreen(onNavigateToHome = {
-                navController.navigate(Screen.Home.route) {
-                    popUpTo(Screen.Welcome.route) { inclusive = true }
+            WelcomeScreen(
+                onNavigateToLogin = { navController.navigate(Screen.Login.route) },
+                onNavigateToSignup = { navController.navigate(Screen.Signup.route) }
+            )
+        }
+        composable(Screen.Login.route) {
+            LoginScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLoginSuccess = {
+                    navController.navigate(Screen.Home.route) {
+                        popUpTo(Screen.Welcome.route) { inclusive = true }
+                    }
                 }
-            })
+            )
+        }
+        composable(Screen.Signup.route) {
+            SignupScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onSignupSuccess = {
+                    navController.navigate(Screen.Login.route)
+                }
+            )
         }
         composable(Screen.Home.route) {
             HomeScreen(
@@ -51,7 +77,14 @@ fun NavGraph(navController: NavHostController) {
             SearchScreen(onNavigateBack = { navController.popBackStack() })
         }
         composable(Screen.Settings.route) {
-            SettingsScreen(onNavigateBack = { navController.popBackStack() })
+            SettingsScreen(
+                onNavigateBack = { navController.popBackStack() },
+                onLogout = {
+                    navController.navigate(Screen.Welcome.route) {
+                        popUpTo(0) { inclusive = true }
+                    }
+                }
+            )
         }
     }
 }

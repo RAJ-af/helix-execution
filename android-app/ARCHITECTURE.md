@@ -28,3 +28,9 @@ The design system emphasizes:
 - **Typography**: Clear, legible fonts with deliberate spacing.
 - **Rounded Corners**: Modern, approachable aesthetic (16dp-24dp radius).
 - **Mobile-First Spacing**: Generous padding for touch targets.
+
+## 8. Authentication Flow
+- **Token Persistence**: JWT tokens are securely stored using `androidx.datastore`.
+- **Auto-Login**: `SplashScreen` checks for existing tokens to bypass the welcome screen.
+- **Navigation Guards**: Screens are logically guarded by the authentication state.
+- **Retrofit AuthService**: Type-safe client for all authentication endpoints.

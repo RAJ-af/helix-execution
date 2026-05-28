@@ -9,14 +9,34 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
+import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.lifecycle.ViewModel
+import com.helix.app.core.data.local.prefs.TokenManager
 import com.helix.app.core.ui.theme.Primary
+import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
+import javax.inject.Inject
+
+@HiltViewModel
+class TokenViewModel @Inject constructor(
+    val tokenManager: TokenManager
+) : ViewModel()
 
 @Composable
-fun SplashScreen(onNavigateToWelcome: () -> Unit) {
+fun SplashScreen(
+    onNavigateToWelcome: () -> Unit,
+    onNavigateToHome: () -> Unit,
+    viewModel: TokenViewModel = hiltViewModel()
+) {
     LaunchedEffect(Unit) {
         delay(2000)
-        onNavigateToWelcome()
+        val token = viewModel.tokenManager.accessToken.first()
+        if (token != null) {
+            onNavigateToHome()
+        } else {
+            onNavigateToWelcome()
+        }
     }
 
     Box(
