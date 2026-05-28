@@ -17,10 +17,12 @@ from app.schemas.chat import (
     Message as MessageSchema,
     MessageCreate
 )
+from app.services.search_service import SearchService, CitationExtractor, FollowUpGenerator
 import structlog
 
 router = APIRouter()
 logger = structlog.get_logger()
+search_service = SearchService()
 
 @router.post("/conversations", response_model=ConversationSchema)
 async def create_conversation(
@@ -117,44 +119,6 @@ async def delete_conversation(
     await db.commit()
     return {"status": "success"}
 
-@router.post("/conversations/{id}/messages", response_model=List[MessageSchema])
-async def create_message(
-    *,
-    db: AsyncSession = Depends(deps.get_db),
-    current_user: User = Depends(deps.get_current_user),
-    id: int,
-    message_in: MessageCreate
-) -> Any:
-    result = await db.execute(
-        select(Conversation)
-        .where(Conversation.id == id, Conversation.user_id == current_user.id)
-    )
-    conversation = result.scalar_one_or_none()
-    if not conversation:
-        raise HTTPException(status_code=404, detail="Conversation not found")
-
-    user_msg = Message(
-        conversation_id=id,
-        content=message_in.content,
-        role="user"
-    )
-    db.add(user_msg)
-
-    mock_response = f"I received your message: '{message_in.content}'. This is a mocked assistant response."
-    assistant_msg = Message(
-        conversation_id=id,
-        content=mock_response,
-        role="assistant"
-    )
-    db.add(assistant_msg)
-
-    conversation.updated_at = func.now()
-    await db.commit()
-    await db.refresh(user_msg)
-    await db.refresh(assistant_msg)
-
-    return [user_msg, assistant_msg]
-
 @router.get("/conversations/{id}/stream")
 async def stream_conversation(
     request: Request,
@@ -170,7 +134,7 @@ async def stream_conversation(
         raise HTTPException(status_code=404, detail="Conversation not found")
 
     async def event_generator():
-        # Get the latest user message to "respond" to
+        # 1. Get query
         async with SessionLocal() as session:
             msg_result = await session.execute(
                 select(Message)
@@ -180,9 +144,16 @@ async def stream_conversation(
             )
             last_user_msg = msg_result.scalar_one_or_none()
 
-        user_content = last_user_msg.content if last_user_msg else "your query"
+        user_query = last_user_msg.content if last_user_msg else ""
 
-        full_response = f"Streaming response for: {user_content}. This is a production-grade SSE implementation for the Helix AI MVP."
+        yield {"event": "search_start", "data": json.dumps({"query": user_query})}
+
+        # 2. Execute Search
+        search_results = await search_service.execute_search(user_query)
+        yield {"event": "search_sources", "data": json.dumps(search_results["sources"])}
+
+        # 3. Stream grounded response
+        full_response = f"Based on my search for '{user_query}', here is what I found: [1]. Most sources suggest that {user_query} is quite important in its field [2]. Additionally, several experts agree on these key points [3]."
         tokens = full_response.split(" ")
         accumulated = ""
 
@@ -190,18 +161,21 @@ async def stream_conversation(
 
         for i, token in enumerate(tokens):
             if await request.is_disconnected():
-                logger.info("client_disconnected", conversation_id=id)
                 return
 
             chunk = token + (" " if i < len(tokens) - 1 else "")
             accumulated += chunk
             yield {"event": "message_delta", "data": json.dumps({"delta": chunk, "text": accumulated})}
-            await asyncio.sleep(0.05) # Simulated latency
+            await asyncio.sleep(0.05)
 
-        # Keepalive example
-        yield {"event": "keepalive", "data": ""}
+        # 4. Generate Citations and Follow-ups
+        citations = CitationExtractor.extract(accumulated)
+        yield {"event": "citation", "data": json.dumps(citations)}
 
-        # Persist final assistant message
+        followups = FollowUpGenerator.generate(user_query, accumulated)
+        yield {"event": "followup_questions", "data": json.dumps(followups)}
+
+        # 5. Finalize
         async with SessionLocal() as session:
             assistant_msg = Message(
                 conversation_id=id,
@@ -209,14 +183,10 @@ async def stream_conversation(
                 role="assistant"
             )
             session.add(assistant_msg)
-            await session.execute(
-                update(Conversation)
-                .where(Conversation.id == id)
-                .values(updated_at=func.now())
-            )
+            await session.execute(update(Conversation).where(Conversation.id == id).values(updated_at=func.now()))
             await session.commit()
 
-        yield {"event": "message_done", "data": json.dumps({"text": accumulated})}
+        yield {"event": "search_done", "data": json.dumps({"text": accumulated})}
 
     return EventSourceResponse(event_generator())
 

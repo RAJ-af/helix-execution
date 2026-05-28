@@ -46,3 +46,9 @@ The design system emphasizes:
 - **Incremental State Updates**: `ChatViewModel` processes `message_delta` events to provide real-time UI updates without full screen recomposition.
 - **Resilient Connections**: Configured with extended timeouts for stable streaming over mobile networks.
 - **Smooth Auto-Scroll**: The chat list automatically follows the streaming content for a premium experience.
+
+## 11. Search & Source Visualization
+- **Source Cards**: Minimal cards for quick reference to external search results.
+- **Incremental Search State**: UI reflects search progress (Searching -> Sources -> Streaming).
+- **Follow-up Integration**: Chip-based interaction for continuous exploration.
+- **Rich Media Handling**: Support for favicons and domain-based source identification.

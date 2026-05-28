@@ -1,6 +1,7 @@
 package com.helix.app.core.data.remote.sse
 
 import com.google.gson.Gson
+import com.google.gson.reflect.TypeToken
 import com.helix.app.core.data.local.prefs.TokenManager
 import kotlinx.coroutines.channels.awaitClose
 import kotlinx.coroutines.flow.Flow
@@ -34,44 +35,44 @@ class SseClient @Inject constructor(
         val listener = object : EventSourceListener() {
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
                 when (type) {
-                    "message_start" -> {
-                        trySend(SseStreamEvent.MessageStart(0)) // In real app, parse ID
-                    }
+                    "message_start" -> trySend(SseStreamEvent.MessageStart(0))
                     "message_delta" -> {
                         val deltaData = gson.fromJson(data, Map::class.java)
-                        val delta = deltaData["delta"] as? String ?: ""
-                        val text = deltaData["text"] as? String ?: ""
-                        trySend(SseStreamEvent.MessageDelta(delta, text))
+                        trySend(SseStreamEvent.MessageDelta(deltaData["delta"] as String, deltaData["text"] as String))
                     }
-                    "message_done" -> {
+                    "search_start" -> trySend(SseStreamEvent.SearchStart(data))
+                    "search_sources" -> {
+                        val listType = object : TypeToken<List<SourceDto>>() {}.type
+                        val sources = gson.fromJson<List<SourceDto>>(data, listType)
+                        trySend(SseStreamEvent.SearchSources(sources))
+                    }
+                    "citation" -> {
+                        val listType = object : TypeToken<List<Int>>() {}.type
+                        val ids = gson.fromJson<List<Int>>(data, listType)
+                        trySend(SseStreamEvent.Citation(ids))
+                    }
+                    "followup_questions" -> {
+                        val listType = object : TypeToken<List<String>>() {}.type
+                        val qs = gson.fromJson<List<String>>(data, listType)
+                        trySend(SseStreamEvent.FollowUpQuestions(qs))
+                    }
+                    "search_done", "message_done" -> {
                         val doneData = gson.fromJson(data, Map::class.java)
-                        val text = doneData["text"] as? String ?: ""
-                        trySend(SseStreamEvent.MessageDone(text))
+                        trySend(SseStreamEvent.SearchDone(doneData["text"] as String))
                     }
-                    "error" -> {
-                        trySend(SseStreamEvent.Error(data))
-                    }
+                    "error" -> trySend(SseStreamEvent.Error(data))
                 }
             }
 
-            override fun onOpen(eventSource: EventSource, response: Response) {
-                // Connection opened
-            }
-
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
-                trySend(SseStreamEvent.Error(t?.message ?: "Unknown SSE error"))
+                trySend(SseStreamEvent.Error(t?.message ?: "SSE Failure"))
                 close(t)
             }
 
-            override fun onClosed(eventSource: EventSource) {
-                close()
-            }
+            override fun onClosed(eventSource: EventSource) { close() }
         }
 
         val eventSource = EventSources.createFactory(okHttpClient).newEventSource(request, listener)
-
-        awaitClose {
-            eventSource.cancel()
-        }
+        awaitClose { eventSource.cancel() }
     }
 }

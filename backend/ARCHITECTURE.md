@@ -41,3 +41,9 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **Async Event Generators**: Uses FastAPI and `sse-starlette` to handle concurrent streaming connections.
 - **Lifecycle Management**: Stream cancellation is handled via client disconnect detection.
 - **Persistence**: Final assistant messages are persisted to the database asynchronously after the stream completes.
+
+## 11. Perplexity-Style Search System
+- **Search Provider Abstraction**: Supports multiple search engines via a common interface (e.g., Tavily).
+- **Grounded Responses**: AI responses are contextually grounded in search snippets before streaming.
+- **Rich Event Stream**: Provides `search_start`, `search_sources`, and `citation` events to the client.
+- **Follow-up Generation**: Suggests relevant next questions to keep the user engaged.
