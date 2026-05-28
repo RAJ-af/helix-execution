@@ -1,6 +1,5 @@
 package com.helix.app.features.chat.ui
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -9,7 +8,6 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Send
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -37,7 +35,6 @@ fun ChatScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
     var inputText by remember { mutableStateOf("") }
-    var showModelSelector by remember { mutableStateOf(false) }
 
     LaunchedEffect(key1 = true) {
         viewModel.eventFlow.collectLatest { event ->
@@ -47,21 +44,17 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(state.value.messages.size, state.value.streamingText) {
-        listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
+    LaunchedEffect(state.value.messages.size, state.value.streamingText, state.value.taskSteps.size) {
+        if (state.value.messages.isNotEmpty() || state.value.streamingText.isNotEmpty() || state.value.taskSteps.isNotEmpty()) {
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
+        }
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = {
-                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.clickable { showModelSelector = true }) {
-                        Icon(Icons.Default.AutoAwesome, contentDescription = null, modifier = Modifier.size(18.dp), tint = Primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Helix AI", fontWeight = FontWeight.Bold)
-                    }
-                },
+                title = { Text("Helix AI", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -79,6 +72,25 @@ fun ChatScreen(
             ) {
                 items(state.value.messages) { message ->
                     MessageBubble(content = message.content, isUser = message.role == "user")
+                }
+
+                if (state.value.clarificationQuestion != null) {
+                    item {
+                        ClarificationUI(
+                            question = state.value.clarificationQuestion!!,
+                            options = state.value.clarificationOptions,
+                            onOptionSelected = { /* Handle option */ }
+                        )
+                    }
+                }
+
+                if (state.value.isExecutingTask || state.value.taskSteps.isNotEmpty()) {
+                    item {
+                        TaskProgressCard(
+                            title = state.value.taskTitle,
+                            steps = state.value.taskSteps
+                        )
+                    }
                 }
 
                 if (state.value.isSearching) {
@@ -133,16 +145,6 @@ fun ChatScreen(
                     inputText = ""
                 },
                 isLoading = state.value.isSending
-            )
-        }
-
-        if (showModelSelector) {
-            ModelSelectorBottomSheet(
-                onModelSelected = { provider ->
-                    // viewModel.updateProvider(provider)
-                    showModelSelector = false
-                },
-                onDismiss = { showModelSelector = false }
             )
         }
     }
