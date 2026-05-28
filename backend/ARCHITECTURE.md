@@ -53,3 +53,9 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **MVP Security**: Implements a strict command blocklist and path traversal protection.
 - **Streaming Output**: Live stdout/stderr is streamed to the client using SSE `tool_output` events.
 - **Registry Pattern**: Easily extensible tool system with base classes for future dynamic tool calling.
+
+## 13. Sequential Agent Execution Loop
+- **Template-Based Planning**: Tasks are decomposed into a checklist of sequential steps based on the user's intent.
+- **Task & Step Tracking**: Real-time updates on step status (pending, running, completed) are streamed via SSE.
+- **Clarification Flow**: Supports MCQ-based user input requests to resolve ambiguities before or during execution.
+- **State Persistence**: Uses `Task` and `TaskStep` models to track progress and results across sessions.

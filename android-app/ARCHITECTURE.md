@@ -58,3 +58,9 @@ The design system emphasizes:
 - **Tool Cards**: High-level execution status with expandable terminal views.
 - **Monospace Typography**: Optimized for code and command readability on mobile.
 - **UX Parity**: Follows the Claude Code / cursor-style execution flow for a premium developer feel.
+
+## 13. Agent Progress & Clarification UI
+- **Task Checklist**: A live-updating progress card showing the status of each agent step with smooth animations.
+- **Integrated MCQ**: One-tap clarification chips allow users to guide the agent without typing.
+- **Agent Status Lifecycle**: UI adapts based on the agent's state (Planning, Running, Waiting for Input, Completed).
+- **Execution History**: Full visibility into tool calls and search operations performed during a complex task.

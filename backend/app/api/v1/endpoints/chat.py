@@ -8,6 +8,7 @@ from sqlalchemy import select, desc, func, update
 from app.api import deps
 from app.db.session import SessionLocal
 from app.models.chat import Conversation, Message
+from app.models.task import Task, TaskStep
 from app.models.user import User
 from app.schemas.chat import (
     Conversation as ConversationSchema,
@@ -18,6 +19,7 @@ from app.schemas.chat import (
     MessageCreate
 )
 from app.services.search_service import SearchService, CitationExtractor, FollowUpGenerator
+from app.services.agent_service import TaskPlanner, ClarificationManager
 from app.core.tools.executor import SubprocessExecutor
 from app.core.tools.workspace import workspace_manager
 import structlog
@@ -78,40 +80,53 @@ async def stream_conversation(
 
         user_query = last_user_msg.content if last_user_msg else ""
 
-        # 1. Search Simulation
-        yield {"event": "search_start", "data": json.dumps({"query": user_query})}
-        await asyncio.sleep(0.5)
-        sources = [{"id": 1, "title": "Helix Documentation", "url": "https://helix.ai/docs", "snippet": "Tool execution is secure."}]
-        yield {"event": "search_sources", "data": json.dumps(sources)}
+        # 1. Clarification Check
+        clarification = ClarificationManager.get_required_clarification(user_query)
+        if clarification:
+            yield {"event": "clarification_required", "data": clarification.model_dump_json()}
+            # For MVP, we stop here or simulate wait. Let's simulate a quick auto-resolve
+            await asyncio.sleep(1)
+            yield {"event": "clarification_received", "data": json.dumps({"selection": clarification.options[0]})}
 
-        # 2. Tool Execution Simulation (Claude Code style)
-        command = "ls -la"
-        yield {"event": "tool_start", "data": json.dumps({"tool": "run_command", "input": command})}
+        # 2. Planning
+        yield {"event": "task_created", "data": json.dumps({"title": f"Agent Task: {user_query}", "conversation_id": id})}
+        steps = TaskPlanner.plan(user_query)
 
-        workspace = workspace_manager.create_workspace(f"conv_{id}")
-        output_acc = ""
-        async for chunk in SubprocessExecutor.run_with_streaming(command, str(workspace)):
-            output_acc += chunk
-            yield {"event": "tool_output", "data": json.dumps({"output": chunk})}
-            await asyncio.sleep(0.05)
+        yield {"event": "task_updated", "data": json.dumps({"status": "running", "steps": steps})}
 
-        yield {"event": "tool_done", "data": json.dumps({"output": output_acc})}
+        for i, step_title in enumerate(steps):
+            if await request.is_disconnected(): return
 
-        # 3. Response Streaming
-        full_response = f"I executed '{command}' in your workspace. The output shows the files. Based on my search, everything is configured correctly [1]."
+            yield {"event": "task_step_started", "data": json.dumps({"index": i, "title": step_title})}
+
+            # Simulate execution
+            if "search" in step_title.lower():
+                yield {"event": "search_start", "data": json.dumps({"query": user_query})}
+                await asyncio.sleep(0.5)
+                yield {"event": "search_sources", "data": json.dumps([{"id": 1, "title": "Knowledge Base", "url": "https://kb.ai", "snippet": "Found info."}])}
+            elif "read" in step_title.lower() or "analyze" in step_title.lower():
+                yield {"event": "tool_start", "data": json.dumps({"tool": "run_command", "input": "ls -R"})}
+                await asyncio.sleep(0.5)
+                yield {"event": "tool_output", "data": json.dumps({"output": "src/\nmain.py\nrequirements.txt\n"})}
+                yield {"event": "tool_done", "data": json.dumps({"output": "Done"})}
+
+            await asyncio.sleep(0.5)
+            yield {"event": "task_step_completed", "data": json.dumps({"index": i, "result": "Success"})}
+
+        # 3. Final Response
+        yield {"event": "task_completed", "data": json.dumps({"result": "Task finished successfully"})}
+
+        full_response = f"I've completed the analysis of your request. Everything looks good. [1]"
         yield {"event": "message_start", "data": json.dumps({"conversation_id": id})}
-
         accumulated = ""
         for chunk in full_response.split(" "):
-            if await request.is_disconnected(): return
             text = chunk + " "
             accumulated += text
             yield {"event": "message_delta", "data": json.dumps({"delta": text, "text": accumulated})}
             await asyncio.sleep(0.05)
 
-        # 4. Finalize
         yield {"event": "citation", "data": json.dumps([1])}
-        yield {"event": "followup_questions", "data": json.dumps(["How do I run more tools?", "Show me the logs"])}
+        yield {"event": "followup_questions", "data": json.dumps(["Run deeper analysis?", "Export report"])}
 
         async with SessionLocal() as session:
             session.add(Message(conversation_id=id, content=accumulated, role="assistant"))

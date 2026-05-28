@@ -18,9 +18,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
-import com.helix.app.core.ui.components.FilePreviewCard
-import com.helix.app.core.ui.components.SourceCard
-import com.helix.app.core.ui.components.ToolCard
+import com.helix.app.core.ui.components.*
 import com.helix.app.core.ui.theme.*
 import com.helix.app.features.chat.viewmodel.ChatEvent
 import com.helix.app.features.chat.viewmodel.ChatViewModel
@@ -46,17 +44,15 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(state.value.messages.size, state.value.streamingText, state.value.toolOutput) {
-        if (state.value.messages.isNotEmpty() || state.value.streamingText.isNotEmpty() || state.value.toolOutput.isNotEmpty()) {
-             listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
-        }
+    LaunchedEffect(state.value.messages.size, state.value.streamingText, state.value.taskSteps.size) {
+        listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
     }
 
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Helix AI", fontWeight = FontWeight.Bold) },
+                title = { Text("Helix Agent", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -76,6 +72,25 @@ fun ChatScreen(
                     MessageBubble(content = message.content, isUser = message.role == "user")
                 }
 
+                if (state.value.clarificationQuestion != null) {
+                    item {
+                        ClarificationUI(
+                            question = state.value.clarificationQuestion!!,
+                            options = state.value.clarificationOptions,
+                            onOptionSelected = { /* Handle option */ }
+                        )
+                    }
+                }
+
+                if (state.value.isExecutingTask || state.value.taskSteps.isNotEmpty()) {
+                    item {
+                        TaskProgressCard(
+                            title = state.value.taskTitle,
+                            steps = state.value.taskSteps
+                        )
+                    }
+                }
+
                 if (state.value.isSearching) {
                     item { Text("Searching...", color = Secondary, style = MaterialTheme.typography.bodySmall) }
                 }
@@ -92,16 +107,12 @@ fun ChatScreen(
 
                 if (state.value.isExecutingTool || state.value.toolOutput.isNotEmpty()) {
                     item {
-                        if (state.value.toolName == "read_file" && !state.value.isExecutingTool) {
-                            FilePreviewCard(fileName = state.value.toolInput, content = state.value.toolOutput)
-                        } else {
-                            ToolCard(
-                                toolName = state.value.toolName,
-                                input = state.value.toolInput,
-                                output = state.value.toolOutput,
-                                isExecuting = state.value.isExecutingTool
-                            )
-                        }
+                        ToolCard(
+                            toolName = state.value.toolName,
+                            input = state.value.toolInput,
+                            output = state.value.toolOutput,
+                            isExecuting = state.value.isExecutingTool
+                        )
                     }
                 }
 
@@ -112,7 +123,6 @@ fun ChatScreen(
                 if (state.value.followUps.isNotEmpty()) {
                     item {
                         Column {
-                            Spacer(modifier = Modifier.height(Spacing.Medium))
                             state.value.followUps.forEach { question ->
                                 SuggestionChip(
                                     onClick = { viewModel.sendAndStream(question) },

@@ -18,6 +18,15 @@ sealed class SseStreamEvent {
     data class ToolStart(val tool: String, val input: String) : SseStreamEvent()
     data class ToolOutput(val output: String) : SseStreamEvent()
     data class ToolDone(val output: String) : SseStreamEvent()
+
+    // Agent/Task Specific
+    data class TaskCreated(val title: String, val conversationId: Int) : SseStreamEvent()
+    data class TaskUpdated(val status: String, val steps: List<String>) : SseStreamEvent()
+    data class TaskStepStarted(val index: Int, val title: String) : SseStreamEvent()
+    data class TaskStepCompleted(val index: Int, val result: String) : SseStreamEvent()
+    data class ClarificationRequired(val question: String, val options: List<String>) : SseStreamEvent()
+    data class ClarificationReceived(val selection: String) : SseStreamEvent()
+    data class TaskCompleted(val result: String) : SseStreamEvent()
 }
 
 data class SourceDto(val id: Int, val title: String, val url: String, val snippet: String)
