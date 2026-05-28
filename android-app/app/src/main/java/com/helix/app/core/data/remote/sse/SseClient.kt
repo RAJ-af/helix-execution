@@ -25,12 +25,7 @@ class SseClient @Inject constructor(
 ) {
     fun stream(url: String): Flow<SseStreamEvent> = callbackFlow {
         val token = runBlocking { tokenManager.accessToken.first() }
-
-        val request = Request.Builder()
-            .url(url)
-            .header("Authorization", "Bearer $token")
-            .header("Accept", "text/event-stream")
-            .build()
+        val request = Request.Builder().url(url).header("Authorization", "Bearer $token").header("Accept", "text/event-stream").build()
 
         val listener = object : EventSourceListener() {
             override fun onEvent(eventSource: EventSource, id: String?, type: String?, data: String) {
@@ -43,35 +38,41 @@ class SseClient @Inject constructor(
                     "search_start" -> trySend(SseStreamEvent.SearchStart(data))
                     "search_sources" -> {
                         val listType = object : TypeToken<List<SourceDto>>() {}.type
-                        val sources = gson.fromJson<List<SourceDto>>(data, listType)
-                        trySend(SseStreamEvent.SearchSources(sources))
+                        trySend(SseStreamEvent.SearchSources(gson.fromJson(data, listType)))
+                    }
+                    "tool_start" -> {
+                        val toolData = gson.fromJson(data, Map::class.java)
+                        trySend(SseStreamEvent.ToolStart(toolData["tool"] as String, toolData["input"] as String))
+                    }
+                    "tool_output" -> {
+                        val outputData = gson.fromJson(data, Map::class.java)
+                        trySend(SseStreamEvent.ToolOutput(outputData["output"] as String))
+                    }
+                    "tool_done" -> {
+                        val doneData = gson.fromJson(data, Map::class.java)
+                        trySend(SseStreamEvent.ToolDone(doneData["output"] as String))
                     }
                     "citation" -> {
                         val listType = object : TypeToken<List<Int>>() {}.type
-                        val ids = gson.fromJson<List<Int>>(data, listType)
-                        trySend(SseStreamEvent.Citation(ids))
+                        trySend(SseStreamEvent.Citation(gson.fromJson(data, listType)))
                     }
                     "followup_questions" -> {
                         val listType = object : TypeToken<List<String>>() {}.type
-                        val qs = gson.fromJson<List<String>>(data, listType)
-                        trySend(SseStreamEvent.FollowUpQuestions(qs))
+                        trySend(SseStreamEvent.FollowUpQuestions(gson.fromJson(data, listType)))
                     }
-                    "search_done", "message_done" -> {
+                    "search_done" -> {
                         val doneData = gson.fromJson(data, Map::class.java)
                         trySend(SseStreamEvent.SearchDone(doneData["text"] as String))
                     }
                     "error" -> trySend(SseStreamEvent.Error(data))
                 }
             }
-
             override fun onFailure(eventSource: EventSource, t: Throwable?, response: Response?) {
                 trySend(SseStreamEvent.Error(t?.message ?: "SSE Failure"))
                 close(t)
             }
-
             override fun onClosed(eventSource: EventSource) { close() }
         }
-
         val eventSource = EventSources.createFactory(okHttpClient).newEventSource(request, listener)
         awaitClose { eventSource.cancel() }
     }

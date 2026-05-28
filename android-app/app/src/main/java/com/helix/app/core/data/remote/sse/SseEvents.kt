@@ -13,11 +13,11 @@ sealed class SseStreamEvent {
     data class Citation(val citationIds: List<Int>) : SseStreamEvent()
     data class FollowUpQuestions(val questions: List<String>) : SseStreamEvent()
     data class SearchDone(val fullText: String) : SseStreamEvent()
+
+    // Tool Specific
+    data class ToolStart(val tool: String, val input: String) : SseStreamEvent()
+    data class ToolOutput(val output: String) : SseStreamEvent()
+    data class ToolDone(val output: String) : SseStreamEvent()
 }
 
-data class SourceDto(
-    val id: Int,
-    val title: String,
-    val url: String,
-    val snippet: String
-)
+data class SourceDto(val id: Int, val title: String, val url: String, val snippet: String)

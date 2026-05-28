@@ -16,8 +16,11 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
+import com.helix.app.core.ui.components.FilePreviewCard
 import com.helix.app.core.ui.components.SourceCard
+import com.helix.app.core.ui.components.ToolCard
 import com.helix.app.core.ui.theme.*
 import com.helix.app.features.chat.viewmodel.ChatEvent
 import com.helix.app.features.chat.viewmodel.ChatViewModel
@@ -43,9 +46,9 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(state.value.messages.size, state.value.streamingText) {
-        if (state.value.messages.isNotEmpty() || state.value.streamingText.isNotEmpty()) {
-            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
+    LaunchedEffect(state.value.messages.size, state.value.streamingText, state.value.toolOutput) {
+        if (state.value.messages.isNotEmpty() || state.value.streamingText.isNotEmpty() || state.value.toolOutput.isNotEmpty()) {
+             listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
         }
     }
 
@@ -53,7 +56,7 @@ fun ChatScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             TopAppBar(
-                title = { Text("Search", fontWeight = FontWeight.Bold) },
+                title = { Text("Helix AI", fontWeight = FontWeight.Bold) },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.Default.ArrowBack, contentDescription = "Back")
@@ -67,44 +70,49 @@ fun ChatScreen(
             LazyColumn(
                 state = listState,
                 modifier = Modifier.weight(1f).fillMaxWidth(),
-                contentPadding = PaddingValues(Spacing.Medium),
-                verticalArrangement = Arrangement.spacedBy(Spacing.Medium)
+                contentPadding = PaddingValues(Spacing.Medium)
             ) {
                 items(state.value.messages) { message ->
                     MessageBubble(content = message.content, isUser = message.role == "user")
                 }
 
                 if (state.value.isSearching) {
-                    item {
-                        Text("Searching for information...", color = Secondary, style = MaterialTheme.typography.bodyMedium)
-                    }
+                    item { Text("Searching...", color = Secondary, style = MaterialTheme.typography.bodySmall) }
                 }
 
                 if (state.value.sources.isNotEmpty()) {
                     item {
-                        Column {
-                            Text("Sources", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(Spacing.Small))
-                            LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) {
-                                items(state.value.sources) { source ->
-                                    SourceCard(title = source.title, url = source.url, onClick = {})
-                                }
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(Spacing.Small)) {
+                            items(state.value.sources) { source ->
+                                SourceCard(title = source.title, url = source.url, onClick = {})
                             }
                         }
                     }
                 }
 
-                if (state.value.isStreaming) {
+                if (state.value.isExecutingTool || state.value.toolOutput.isNotEmpty()) {
                     item {
-                        MessageBubble(content = state.value.streamingText, isUser = false)
+                        if (state.value.toolName == "read_file" && !state.value.isExecutingTool) {
+                            FilePreviewCard(fileName = state.value.toolInput, content = state.value.toolOutput)
+                        } else {
+                            ToolCard(
+                                toolName = state.value.toolName,
+                                input = state.value.toolInput,
+                                output = state.value.toolOutput,
+                                isExecuting = state.value.isExecutingTool
+                            )
+                        }
                     }
+                }
+
+                if (state.value.isStreaming) {
+                    item { MessageBubble(content = state.value.streamingText, isUser = false) }
                 }
 
                 if (state.value.followUps.isNotEmpty()) {
                     item {
                         Column {
-                            Text("Follow-up", style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.Bold)
-                            Spacer(modifier = Modifier.height(Spacing.Small))
+                            Spacer(modifier = Modifier.height(Spacing.Medium))
                             state.value.followUps.forEach { question ->
                                 SuggestionChip(
                                     onClick = { viewModel.sendAndStream(question) },
@@ -133,19 +141,18 @@ fun ChatScreen(
 @Composable
 fun MessageBubble(content: String, isUser: Boolean) {
     Box(
-        modifier = Modifier.fillMaxWidth(),
+        modifier = Modifier.fillMaxWidth().padding(vertical = Spacing.Small),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
     ) {
         Surface(
-            color = if (isUser) Primary else Color.Transparent,
-            contentColor = if (isUser) OnPrimary else Primary,
+            color = if (isUser) SurfaceVariant else Color.Transparent,
             shape = RoundedCornerShape(Radius.Medium)
         ) {
             Text(
                 text = content,
                 modifier = Modifier.padding(if (isUser) Spacing.Medium else 0.dp),
                 style = if (isUser) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.headlineSmall,
-                lineHeight = if (isUser) 24.sp else 32.sp
+                color = Primary
             )
         }
     }
@@ -162,7 +169,7 @@ fun ChatInputBar(text: String, onTextChange: (String) -> Unit, onSend: () -> Uni
                 value = text,
                 onValueChange = onTextChange,
                 modifier = Modifier.weight(1f),
-                placeholder = { Text("Ask anything...", color = Secondary) },
+                placeholder = { Text("Ask or command...", color = Secondary) },
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = Color.Transparent,
                     unfocusedContainerColor = Color.Transparent,

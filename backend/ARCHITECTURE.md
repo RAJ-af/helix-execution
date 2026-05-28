@@ -47,3 +47,9 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **Grounded Responses**: AI responses are contextually grounded in search snippets before streaming.
 - **Rich Event Stream**: Provides `search_start`, `search_sources`, and `citation` events to the client.
 - **Follow-up Generation**: Suggests relevant next questions to keep the user engaged.
+
+## 12. Claude Code-Style Tool Execution
+- **Subprocess Isolation**: Executes shell commands in dedicated per-conversation workspace directories.
+- **MVP Security**: Implements a strict command blocklist and path traversal protection.
+- **Streaming Output**: Live stdout/stderr is streamed to the client using SSE `tool_output` events.
+- **Registry Pattern**: Easily extensible tool system with base classes for future dynamic tool calling.

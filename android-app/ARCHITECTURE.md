@@ -52,3 +52,9 @@ The design system emphasizes:
 - **Incremental Search State**: UI reflects search progress (Searching -> Sources -> Streaming).
 - **Follow-up Integration**: Chip-based interaction for continuous exploration.
 - **Rich Media Handling**: Support for favicons and domain-based source identification.
+
+## 12. Integrated Terminal & Tool Visualization
+- **Terminal UI**: Monospace output rendering with live streaming updates.
+- **Tool Cards**: High-level execution status with expandable terminal views.
+- **Monospace Typography**: Optimized for code and command readability on mobile.
+- **UX Parity**: Follows the Claude Code / cursor-style execution flow for a premium developer feel.

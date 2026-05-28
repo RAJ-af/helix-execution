@@ -44,7 +44,7 @@ class ChatViewModel @Inject constructor(
     fun sendAndStream(content: String) {
         if (content.isBlank()) return
         viewModelScope.launch {
-            _uiState.value = uiState.value.copy(isSending = true, sources = emptyList(), followUps = emptyList())
+            _uiState.value = uiState.value.copy(isSending = true, sources = emptyList(), followUps = emptyList(), toolOutput = "")
             val sendResult = repository.sendMessage(conversationId, content)
             if (sendResult is Resource.Error) {
                 _uiState.value = uiState.value.copy(isSending = false)
@@ -55,7 +55,10 @@ class ChatViewModel @Inject constructor(
             repository.streamChat(conversationId).onEach { event ->
                 when (event) {
                     is SseStreamEvent.SearchStart -> _uiState.value = uiState.value.copy(isSearching = true)
-                    is SseStreamEvent.SearchSources -> _uiState.value = uiState.value.copy(sources = event.sources, isSearching = False)
+                    is SseStreamEvent.SearchSources -> _uiState.value = uiState.value.copy(sources = event.sources, isSearching = false)
+                    is SseStreamEvent.ToolStart -> _uiState.value = uiState.value.copy(isExecutingTool = true, toolName = event.tool, toolInput = event.input)
+                    is SseStreamEvent.ToolOutput -> _uiState.value = uiState.value.copy(toolOutput = uiState.value.toolOutput + event.output)
+                    is SseStreamEvent.ToolDone -> _uiState.value = uiState.value.copy(isExecutingTool = false)
                     is SseStreamEvent.MessageStart -> _uiState.value = uiState.value.copy(isStreaming = true, streamingText = "")
                     is SseStreamEvent.MessageDelta -> _uiState.value = uiState.value.copy(streamingText = event.fullText)
                     is SseStreamEvent.FollowUpQuestions -> _uiState.value = uiState.value.copy(followUps = event.questions)
@@ -64,7 +67,7 @@ class ChatViewModel @Inject constructor(
                         getMessages()
                     }
                     is SseStreamEvent.Error -> {
-                        _uiState.value = uiState.value.copy(isStreaming = false, isSending = false)
+                        _uiState.value = uiState.value.copy(isStreaming = false, isSending = false, isExecutingTool = false)
                         _eventFlow.emit(ChatEvent.Error(event.message))
                     }
                     else -> {}
@@ -79,10 +82,14 @@ data class ChatState(
     val streamingText: String = "",
     val sources: List<SourceDto> = emptyList(),
     val followUps: List<String> = emptyList(),
+    val toolName: String = "",
+    val toolInput: String = "",
+    val toolOutput: String = "",
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
     val isSearching: Boolean = false,
-    val isStreaming: Boolean = false
+    val isStreaming: Boolean = false,
+    val isExecutingTool: Boolean = false
 )
 
 sealed class ChatEvent {
