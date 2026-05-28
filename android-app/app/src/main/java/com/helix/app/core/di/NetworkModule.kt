@@ -1,10 +1,15 @@
 package com.helix.app.core.di
 
+import com.helix.app.core.data.local.prefs.TokenManager
 import com.helix.app.core.data.remote.AuthService
+import com.helix.app.core.data.remote.ChatService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import okhttp3.Interceptor
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
@@ -25,11 +30,26 @@ object NetworkModule {
 
     @Provides
     @Singleton
+    fun provideAuthInterceptor(tokenManager: TokenManager): Interceptor {
+        return Interceptor { chain ->
+            val token = runBlocking { tokenManager.accessToken.first() }
+            val request = chain.request().newBuilder()
+            if (token != null) {
+                request.addHeader("Authorization", "Bearer $token")
+            }
+            chain.proceed(request.build())
+        }
+    }
+
+    @Provides
+    @Singleton
     fun provideOkHttpClient(
-        loggingInterceptor: HttpLoggingInterceptor
+        loggingInterceptor: HttpLoggingInterceptor,
+        authInterceptor: Interceptor
     ): OkHttpClient {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
+            .addInterceptor(authInterceptor)
             .build()
     }
 
@@ -47,5 +67,11 @@ object NetworkModule {
     @Singleton
     fun provideAuthService(retrofit: Retrofit): AuthService {
         return retrofit.create(AuthService::class.java)
+    }
+
+    @Provides
+    @Singleton
+    fun provideChatService(retrofit: Retrofit): ChatService {
+        return retrofit.create(ChatService::class.java)
     }
 }

@@ -29,3 +29,9 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **Bcrypt Hashing**: Passwords are never stored in plain text.
 - **Unified Auth Service**: Centralized logic for login, signup, and token refreshing.
 - **Secure Dependencies**: `get_current_user` dependency ensures that protected routes are only accessible with a valid JWT.
+
+## 9. Chat & Conversation System
+- **Conversation State**: Managed via SQLAlchemy models with relationship optimization to fetch messages.
+- **Mocked Responses**: The system generates assistant responses immediately for MVP testing.
+- **Pagination & Ordering**: List endpoints support skip/limit and are ordered by the latest activity.
+- **Soft Deletes**: Conversations can be marked as deleted without being purged from the database.

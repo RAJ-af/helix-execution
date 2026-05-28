@@ -34,3 +34,9 @@ The design system emphasizes:
 - **Auto-Login**: `SplashScreen` checks for existing tokens to bypass the welcome screen.
 - **Navigation Guards**: Screens are logically guarded by the authentication state.
 - **Retrofit AuthService**: Type-safe client for all authentication endpoints.
+
+## 9. Chat Implementation
+- **Room-First Caching**: Conversations and messages are cached locally for offline access and instant loading.
+- **Bi-directional Sync**: Repositories synchronize local data with the remote API.
+- **Premium UI Components**: Custom `MessageBubble` and `ChatInputBar` with keyboard-aware layouts.
+- **Smooth Interaction**: Auto-scrolling, loading states, and animations provide a production-quality feel.
