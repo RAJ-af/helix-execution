@@ -1,33 +1,33 @@
-# Helix AI - Android Build Instructions
+# Helix AI - MVP Build & Release Guide
 
-Follow these steps to generate a runnable APK for MVP testing.
+This guide describes how to build and install the first runnable APK for Helix AI.
 
-## Prerequisites
-- Android Studio Hedgehog (2023.1.1) or newer.
-- JDK 17.
-- Gradle 8.2.
+## 1. Environment Setup
+- **JDK**: Version 17 is required.
+- **Android SDK**: API Level 34 (UpsideDownCake) or newer.
+- **Gradle**: 8.2 (handled by wrapper).
 
-## Local Configuration
-1. Open the project in Android Studio.
-2. Ensure you have a running backend. By default, the app points to `http://10.0.2.2:8000` (local machine from emulator).
-3. If using a real device, update `Config.BASE_URL` in `com.helix.app.core.common.Config` to your machine's IP.
+## 2. Configuration
+Copy `.env.example` to a new file called `.env` in the `android-app` root.
+Update `BASE_URL` to point to your running Helix Backend.
 
-## Building the APK
-### Via Android Studio
-1. Go to `Build` > `Build Bundle(s) / APK(s)` > `Build APK(s)`.
-2. Once complete, the APK will be located in `app/build/outputs/apk/debug/app-debug.apk`.
-
-### Via Command Line
-Run the following from the `android-app` root:
+## 3. Running the Build
+Open a terminal in the `android-app` folder and run:
 ```bash
 ./gradlew assembleDebug
 ```
 
-## Deployment
-1. Transfer the `app-debug.apk` to your Android device.
-2. Enable "Install from Unknown Sources" in your device settings.
-3. Install and launch Helix AI.
+## 4. Retrieving the APK
+Once the build finishes, the APK will be located at:
+`android-app/app/build/outputs/apk/debug/app-debug.apk`
 
-## Troubleshooting
-- **Network Error**: Ensure the backend is reachable from the device. Use a tunnel like `ngrok` or `localtunnel` if testing over the internet.
-- **Hilt Issues**: Perform a `Project Clean` and `Rebuild` if you encounter dependency injection errors.
+I have created a `release/` folder in the project root where you should move your final tested builds.
+
+## 5. Backend Connection
+Ensure your backend is running:
+```bash
+cd backend
+docker-compose up --build
+```
+
+The app is pre-configured with a "Mock Mode" for AI providers if API keys are missing, allowing you to test the full UI flow (Chat -> Search -> Tools -> Agent) immediately.
