@@ -1,6 +1,5 @@
 package com.helix.app.features.chat.ui
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -13,17 +12,14 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.hilt.navigation.compose.hiltViewModel
 import com.helix.app.core.ui.theme.*
 import com.helix.app.features.chat.viewmodel.ChatEvent
 import com.helix.app.features.chat.viewmodel.ChatViewModel
 import kotlinx.coroutines.flow.collectLatest
-import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -35,7 +31,6 @@ fun ChatScreen(
     val state = viewModel.uiState.collectAsState()
     val snackbarHostState = remember { SnackbarHostState() }
     val listState = rememberLazyListState()
-    val scope = rememberCoroutineScope()
     var inputText by remember { mutableStateOf("") }
 
     LaunchedEffect(key1 = true) {
@@ -46,9 +41,9 @@ fun ChatScreen(
         }
     }
 
-    LaunchedEffect(state.value.messages.size) {
-        if (state.value.messages.isNotEmpty()) {
-            listState.animateScrollToItem(state.value.messages.size - 1)
+    LaunchedEffect(state.value.messages.size, state.value.streamingText) {
+        if (state.value.messages.isNotEmpty() || state.value.streamingText.isNotEmpty()) {
+            listState.animateScrollToItem(listState.layoutInfo.totalItemsCount)
         }
     }
 
@@ -79,13 +74,23 @@ fun ChatScreen(
                         isUser = message.role == "user"
                     )
                 }
+
+                if (state.value.isStreaming) {
+                    item {
+                        MessageBubble(
+                            content = state.value.streamingText,
+                            isUser = false,
+                            isStreaming = true
+                        )
+                    }
+                }
             }
 
             ChatInputBar(
                 text = inputText,
                 onTextChange = { inputText = it },
                 onSend = {
-                    viewModel.sendMessage(inputText)
+                    viewModel.sendAndStream(inputText)
                     inputText = ""
                 },
                 isLoading = state.value.isSending
@@ -95,7 +100,7 @@ fun ChatScreen(
 }
 
 @Composable
-fun MessageBubble(content: String, isUser: Boolean) {
+fun MessageBubble(content: String, isUser: Boolean, isStreaming: Boolean = false) {
     Box(
         modifier = Modifier.fillMaxWidth(),
         contentAlignment = if (isUser) Alignment.CenterEnd else Alignment.CenterStart
@@ -110,11 +115,15 @@ fun MessageBubble(content: String, isUser: Boolean) {
                 bottomEnd = if (isUser) 4.dp else Radius.Large
             )
         ) {
-            Text(
-                text = content,
-                modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.Small),
-                style = MaterialTheme.typography.bodyLarge
-            )
+            Row(modifier = Modifier.padding(horizontal = Spacing.Medium, vertical = Spacing.Small)) {
+                Text(
+                    text = content,
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                if (isStreaming) {
+                   // Typing cursor animation could be added here
+                }
+            }
         }
     }
 }

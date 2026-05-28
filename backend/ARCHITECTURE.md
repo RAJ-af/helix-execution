@@ -35,3 +35,9 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **Mocked Responses**: The system generates assistant responses immediately for MVP testing.
 - **Pagination & Ordering**: List endpoints support skip/limit and are ordered by the latest activity.
 - **Soft Deletes**: Conversations can be marked as deleted without being purged from the database.
+
+## 10. SSE Streaming Architecture
+- **Server-Sent Events (SSE)**: Efficiently stream AI responses token-by-token to the mobile client.
+- **Async Event Generators**: Uses FastAPI and `sse-starlette` to handle concurrent streaming connections.
+- **Lifecycle Management**: Stream cancellation is handled via client disconnect detection.
+- **Persistence**: Final assistant messages are persisted to the database asynchronously after the stream completes.

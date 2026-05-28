@@ -40,3 +40,9 @@ The design system emphasizes:
 - **Bi-directional Sync**: Repositories synchronize local data with the remote API.
 - **Premium UI Components**: Custom `MessageBubble` and `ChatInputBar` with keyboard-aware layouts.
 - **Smooth Interaction**: Auto-scrolling, loading states, and animations provide a production-quality feel.
+
+## 10. Mobile Streaming Engine
+- **OkHttp SSE**: Robust client for handling text/event-stream connections.
+- **Incremental State Updates**: `ChatViewModel` processes `message_delta` events to provide real-time UI updates without full screen recomposition.
+- **Resilient Connections**: Configured with extended timeouts for stable streaming over mobile networks.
+- **Smooth Auto-Scroll**: The chat list automatically follows the streaming content for a premium experience.

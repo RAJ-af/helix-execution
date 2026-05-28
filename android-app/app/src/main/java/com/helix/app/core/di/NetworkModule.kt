@@ -1,5 +1,6 @@
 package com.helix.app.core.di
 
+import com.google.gson.Gson
 import com.helix.app.core.data.local.prefs.TokenManager
 import com.helix.app.core.data.remote.AuthService
 import com.helix.app.core.data.remote.ChatService
@@ -14,11 +15,16 @@ import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor
 import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
+import java.util.concurrent.TimeUnit
 import javax.inject.Singleton
 
 @Module
 @InstallIn(SingletonComponent::class)
 object NetworkModule {
+
+    @Provides
+    @Singleton
+    fun provideGson(): Gson = Gson()
 
     @Provides
     @Singleton
@@ -50,6 +56,9 @@ object NetworkModule {
         return OkHttpClient.Builder()
             .addInterceptor(loggingInterceptor)
             .addInterceptor(authInterceptor)
+            .connectTimeout(30, TimeUnit.SECONDS)
+            .readTimeout(60, TimeUnit.SECONDS) // Important for streaming
+            .writeTimeout(30, TimeUnit.SECONDS)
             .build()
     }
 

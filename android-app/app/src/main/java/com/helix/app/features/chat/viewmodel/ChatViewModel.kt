@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.helix.app.core.common.BaseViewModel
 import com.helix.app.core.common.Resource
 import com.helix.app.core.data.local.db.entities.MessageEntity
+import com.helix.app.core.data.remote.sse.SseStreamEvent
 import com.helix.app.core.domain.repository.ChatRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableSharedFlow
@@ -54,27 +55,62 @@ class ChatViewModel @Inject constructor(
         }.launchIn(viewModelScope)
     }
 
-    fun sendMessage(content: String) {
+    fun sendAndStream(content: String) {
         if (content.isBlank()) return
 
         viewModelScope.launch {
             _uiState.value = uiState.value.copy(isSending = true)
-            val result = repository.sendMessage(conversationId, content)
-            _uiState.value = uiState.value.copy(isSending = false)
 
-            if (result is Resource.Success) {
-                getMessages()
-            } else {
-                _eventFlow.emit(ChatEvent.Error(result.message ?: "Failed to send message"))
+            // 1. Send message to trigger assistant response on server
+            val sendResult = repository.sendMessage(conversationId, content)
+            if (sendResult is Resource.Error) {
+                _uiState.value = uiState.value.copy(isSending = false)
+                _eventFlow.emit(ChatEvent.Error(sendResult.message ?: "Failed to send message"))
+                return@launch
             }
+
+            // 2. Start streaming
+            repository.streamChat(conversationId).onEach { event ->
+                when (event) {
+                    is SseStreamEvent.MessageStart -> {
+                        _uiState.value = uiState.value.copy(
+                            isStreaming = true,
+                            streamingText = ""
+                        )
+                    }
+                    is SseStreamEvent.MessageDelta -> {
+                        _uiState.value = uiState.value.copy(
+                            streamingText = event.fullText
+                        )
+                    }
+                    is SseStreamEvent.MessageDone -> {
+                        _uiState.value = uiState.value.copy(
+                            isStreaming = false,
+                            streamingText = "",
+                            isSending = false
+                        )
+                        getMessages() // Refresh messages to include persisted assistant response
+                    }
+                    is SseStreamEvent.Error -> {
+                        _uiState.value = uiState.value.copy(
+                            isStreaming = false,
+                            isSending = false
+                        )
+                        _eventFlow.emit(ChatEvent.Error(event.message))
+                    }
+                    else -> {}
+                }
+            }.launchIn(viewModelScope)
         }
     }
 }
 
 data class ChatState(
     val messages: List<MessageEntity> = emptyList(),
+    val streamingText: String = "",
     val isLoading: Boolean = false,
-    val isSending: Boolean = false
+    val isSending: Boolean = false,
+    val isStreaming: Boolean = false
 )
 
 sealed class ChatEvent {
