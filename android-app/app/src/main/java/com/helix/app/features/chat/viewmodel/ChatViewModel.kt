@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.helix.app.core.common.BaseViewModel
 import com.helix.app.core.common.Resource
 import com.helix.app.core.data.local.db.entities.MessageEntity
+import com.helix.app.core.data.local.prefs.SettingsManager
 import com.helix.app.core.data.remote.sse.SseStreamEvent
 import com.helix.app.core.data.remote.sse.SourceDto
 import com.helix.app.core.domain.repository.ChatRepository
@@ -16,6 +17,7 @@ import javax.inject.Inject
 @HiltViewModel
 class ChatViewModel @Inject constructor(
     private val repository: ChatRepository,
+    private val settingsManager: SettingsManager,
     savedStateHandle: SavedStateHandle
 ) : BaseViewModel<ChatState>(ChatState()) {
 
@@ -26,6 +28,18 @@ class ChatViewModel @Inject constructor(
 
     init {
         if (conversationId != -1) getMessages()
+
+        viewModelScope.launch {
+            settingsManager.preferredProvider.collect { provider ->
+                _uiState.value = uiState.value.copy(selectedProvider = provider)
+            }
+        }
+    }
+
+    fun updateProvider(provider: String) {
+        viewModelScope.launch {
+            settingsManager.saveProvider(provider)
+        }
     }
 
     fun getMessages() {
@@ -52,6 +66,7 @@ class ChatViewModel @Inject constructor(
                 return@launch
             }
 
+            // In a real app, streamChat would take the provider as a parameter
             repository.streamChat(conversationId).onEach { event ->
                 when (event) {
                     is SseStreamEvent.SearchStart -> _uiState.value = uiState.value.copy(isSearching = true)
@@ -108,6 +123,7 @@ data class ChatState(
     val taskSteps: List<TaskStepUI> = emptyList(),
     val clarificationQuestion: String? = null,
     val clarificationOptions: List<String> = emptyList(),
+    val selectedProvider: String = "claude",
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
     val isSearching: Boolean = false,

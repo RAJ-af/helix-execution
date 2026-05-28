@@ -59,3 +59,15 @@ A global exception handler ensures that we never leak internal stack traces to t
 - **Task & Step Tracking**: Real-time updates on step status (pending, running, completed) are streamed via SSE.
 - **Clarification Flow**: Supports MCQ-based user input requests to resolve ambiguities before or during execution.
 - **State Persistence**: Uses `Task` and `TaskStep` models to track progress and results across sessions.
+
+## 14. Provider-Agnostic AI Architecture
+- **Unified AIProvider Interface**: Standardizes streaming and batch requests across all cloud and local models.
+- **Model Router**: Intelligently routes requests to the optimal provider based on task complexity (e.g., coding -> Claude, search -> Gemini).
+- **Adapter Pattern**: High-level providers (Claude, Gemini, OpenRouter) are fully implemented, while others (Ollama, Nvidia NIM) have ready-to-use scaffolds.
+- **Prompt Management**: Modular prompt system for consistent AI behavior regardless of the underlying model.
+
+## 15. AI Provider Abstraction
+- **Base AIProvider Interface**: Standardizes interaction patterns (stream vs batch) across all LLM providers.
+- **Provider Registry**: A centralized registry manages lifecycle and configuration of various AI adapters.
+- **Model Routing Engine**: Implements logic to direct queries to the most suitable model based on intent and user preference.
+- **Unified Schema**: Standardized response and tool-call formats ensure the rest of the backend remains provider-agnostic.

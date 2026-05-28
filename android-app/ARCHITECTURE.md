@@ -64,3 +64,14 @@ The design system emphasizes:
 - **Integrated MCQ**: One-tap clarification chips allow users to guide the agent without typing.
 - **Agent Status Lifecycle**: UI adapts based on the agent's state (Planning, Running, Waiting for Input, Completed).
 - **Execution History**: Full visibility into tool calls and search operations performed during a complex task.
+
+## 14. AI Provider & Model Management
+- **Model Selector**: Premium bottom sheet for on-the-fly model switching with capability indicators.
+- **Global Settings**: DataStore integration for persisting user-preferred AI providers.
+- **Active Model Indicator**: Visual feedback in the Chat UI showing which engine is currently powering the conversation.
+- **Mobile-First Settings**: Clean, intuitive interface for managing API keys and local/cloud preferences.
+
+## 15. Dynamic AI Configuration
+- **SettingsManager**: Persists user preferences for AI models and providers using DataStore.
+- **Model Switching UI**: Provides a premium bottom sheet for on-the-fly selection of different AI engines.
+- **Provider-Agnostic UI**: The frontend logic remains decoupled from specific AI provider implementations, relying solely on unified SSE events.
