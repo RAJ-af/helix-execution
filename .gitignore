@@ -1,0 +1,9 @@
+.gradle/
+**/build/
+**/.*
+*.apk
+*.log
+sdk/
+android-sdk/
+cmdline-tools/
+/tmp/

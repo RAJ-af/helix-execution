@@ -1,0 +1,34 @@
+package com.helix.app.core.di
+
+import android.content.Context
+import androidx.room.Room
+import com.helix.app.core.data.local.db.HelixDatabase
+import com.helix.app.core.data.local.db.dao.ConversationDao
+import com.helix.app.core.data.local.db.dao.MessageDao
+import dagger.Module
+import dagger.Provides
+import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
+import dagger.hilt.components.SingletonComponent
+import javax.inject.Singleton
+
+@Module
+@InstallIn(SingletonComponent::class)
+object DatabaseModule {
+
+    @Provides
+    @Singleton
+    fun provideDatabase(@ApplicationContext context: Context): HelixDatabase {
+        return Room.databaseBuilder(
+            context,
+            HelixDatabase::class.java,
+            "helix_db"
+        ).fallbackToDestructiveMigration().build()
+    }
+
+    @Provides
+    fun provideConversationDao(database: HelixDatabase): ConversationDao = database.conversationDao()
+
+    @Provides
+    fun provideMessageDao(database: HelixDatabase): MessageDao = database.messageDao()
+}
