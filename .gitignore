@@ -1,37 +1,9 @@
-# Python
-__pycache__/
-*.py[cod]
-*.class
-.env
-.venv
-env/
-venv/
-ENV/
-.pytest_cache/
-backend/app/__pycache__/
-backend/app/api/__pycache__/
-backend/app/core/__pycache__/
-backend/app/db/__pycache__/
-backend/app/models/__pycache__/
-backend/app/schemas/__pycache__/
-backend/app/services/__pycache__/
-backend/app/tests/__pycache__/
-
-# Android
 .gradle/
-build/
-app/build/
 **/build/
-*.iml
-.idea/
-local.properties
-.DS_Store
-android-app/.gradle/
-android-app/app/build/
-android-app/build/
-
-# Alembic
-alembic/versions/*
-!alembic/versions/.gitkeep
-backend/alembic/versions/*
-!backend/alembic/versions/.gitkeep
+**/.*
+*.apk
+*.log
+sdk/
+android-sdk/
+cmdline-tools/
+/tmp/
