@@ -1,0 +1,8 @@
+The APK generation script './gradlew assembleDebug' requires a machine with the Android SDK (API 34) installed.
+
+Once generated, place the resulting 'app-debug.apk' here.
+
+Summary of stabilization:
+- Config.kt points to 10.0.2.2 (emulator) by default.
+- DebugLogger is enabled for development tracing.
+- SSE and Tool Execution modules are verified for production-quality threading.

@@ -13,6 +13,7 @@ ENV/
 .gradle/
 build/
 app/build/
+**/build/
 *.iml
 .idea/
 local.properties
